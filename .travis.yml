@@ -8,6 +8,8 @@ services:
 before_install:
   - docker build -t postrational/test_ngraph_onnx .ci/travis/ubuntu
 
+install: true
+
 script:
   - docker run postrational/test_ngraph_onnx
 
