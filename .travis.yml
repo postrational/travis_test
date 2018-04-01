@@ -10,3 +10,7 @@ before_install:
 
 script:
   - docker run postrational/test_ngraph_onnx
+
+branches:
+  only:
+    - "master"
