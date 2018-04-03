@@ -1,39 +1,47 @@
 FROM ubuntu:16.04
 
-RUN apt-get -y update
-RUN apt-get -y install git build-essential cmake clang-3.9 git curl zlib1g zlib1g-dev libtinfo-dev
-
-# Install nGraph in /root/ngraph
-WORKDIR /root
-RUN git clone https://github.com/NervanaSystems/ngraph.git
-RUN mkdir ngraph/build
-WORKDIR ngraph/build
-RUN cmake ../ -DNGRAPH_USE_PREBUILT_LLVM=TRUE
-RUN make -j 8
-RUN make install
+# nGraph dependencies
+RUN apt-get update && apt-get install -y \
+  build-essential \
+  cmake \
+  clang-3.9 \
+  clang-format-3.9 \
+  git \
+  curl \
+  zlib1g \
+  zlib1g-dev \
+  libtinfo-dev && \
+  apt-get clean autoclean && apt-get autoremove -y
 
 # Python dependencies
-RUN apt-get -y install python python3
-RUN apt-get -y install python-pip python3-pip
-RUN apt-get -y install python-dev python3-dev
-RUN apt-get -y install python-virtualenv
+RUN apt-get update && apt-get install -y \
+  python \
+  python3 \
+  python-dev \
+  python3-dev \
+  python-pip && \
+  apt-get clean autoclean && apt-get autoremove -y
 RUN pip install --upgrade pip setuptools wheel
-RUN pip3 install --upgrade pip setuptools wheel
+RUN pip install tox
 
-# ONNX dependencies
-RUN apt-get -y install protobuf-compiler libprotobuf-dev
+# Test nGraph
+#COPY . /root/ngraph
+WORKDIR /root
+RUN git clone https://github.com/NervanaSystems/ngraph.git
 
-# Build nGraph Wheel
+RUN mkdir /root/ngraph/build
+WORKDIR /root/ngraph/build
+RUN cmake ../ -DNGRAPH_USE_PREBUILT_LLVM=TRUE
+RUN make -j 8
+RUN make check
+RUN make install
+
+# Test nGraph Python API
 RUN mkdir /root/ngraph/python/build
 WORKDIR /root/ngraph/python/build
 RUN cmake -DNGRAPH_INSTALL_PREFIX=/root/ngraph_dist ..
 RUN make -j 8
-WORKDIR /root/ngraph/python
-RUN NGRAPH_CPP_BUILD_PATH=/root/ngraph_dist python3 setup.py bdist_wheel
-
-# Test nGraph-ONNX
-WORKDIR /root
-RUN git clone https://github.com/NervanaSystems/ngraph-onnx.git
-WORKDIR /root/ngraph-onnx
-RUN pip install tox
-CMD TOX_INSTALL_NGRAPH_FROM=`find /root/ngraph/python/dist/ -name 'ngraph*.whl'` tox
+ENV NGRAPH_CPP_BUILD_PATH /root/ngraph_dist
+ENV LD_LIBRARY_PATH /root/ngraph_dist/lib
+ENV PYBIND_HEADERS_PATH /root/ngraph/python/build/pybind11
+CMD cd /root/ngraph/build && make check ; cd /root/ngraph/python && tox
