@@ -33,7 +33,6 @@ RUN mkdir /root/ngraph/build
 WORKDIR /root/ngraph/build
 RUN cmake ../ -DNGRAPH_USE_PREBUILT_LLVM=TRUE
 RUN make -j 8
-RUN make check
 RUN make install
 
 # Test nGraph Python API
