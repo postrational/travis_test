@@ -11,7 +11,9 @@ before_install:
 install: true
 
 script:
-  - docker run test_ngraph
+  - docker run -w '/root/ngraph/build' test_ngraph make check
+  - docker run -w '/root/ngraph/python' test_ngraph tox -e py27
+  - docker run -w '/root/ngraph/python' test_ngraph tox -e py35
 
 branches:
   only:
